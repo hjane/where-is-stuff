@@ -8,6 +8,8 @@ import 'user_info.dart';
 import 'auth_result.dart';
 import 'exceptions/auth_exception.dart';
 
+typedef VerifyOtpCallback = Future<SignInRes> Function(VerifyOtpParams);
+
 class AuthService {
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
@@ -18,22 +20,24 @@ class AuthService {
 
   bool _isInitialized = false;
   String? _anonymousToken;
+  String? _pendingEmail;
+  VerifyOtpCallback? _pendingVerifyOtp;
   StreamController<AuthState>? _authStateController;
   UserInfo? _currentUser;
 
   Future<void> initialize() async {
     if (_isInitialized) return;
-    
+
     await _storage.initialize();
-    
+
     await _cloudBase.initialize(
       envId: TCBConfig.envId,
       region: TCBConfig.region,
       accessKey: TCBConfig.accessKey,
     );
-    
+
     _initAuthStateListener();
-    
+
     _isInitialized = true;
   }
 
@@ -45,7 +49,7 @@ class AuthService {
           password: password,
         ),
       );
-      
+
       if (result.isSuccess) {
         final user = _convertToUserInfo(result.data?.user);
         await _cacheUserInfo(user, result.data?.session?.accessToken);
@@ -54,6 +58,7 @@ class AuthService {
         return AuthResult.failure(_convertError(result.error));
       }
     } catch (e) {
+      debugPrint('[AuthService] signInWithEmail error: $e');
       return AuthResult.failure(AuthException(code: 'unknown', message: e.toString()));
     }
   }
@@ -67,11 +72,14 @@ class AuthService {
           nickname: nickname,
         ),
       );
-      
+
       if (signUpResult.error != null) {
         return AuthResult.failure(_convertError(signUpResult.error));
       }
-      
+
+      _pendingEmail = email;
+      _pendingVerifyOtp = signUpResult.data?.verifyOtp;
+
       return AuthResult.success(
         user: UserInfo(
           id: '',
@@ -84,29 +92,26 @@ class AuthService {
         ),
       );
     } catch (e) {
+      debugPrint('[AuthService] signUpWithEmail error: $e');
       return AuthResult.failure(AuthException(code: 'unknown', message: e.toString()));
     }
   }
 
-  Future<AuthResult> verifyEmailCode(String email, String code, {String? anonymousToken}) async {
+  Future<AuthResult> verifyEmailCode(String code, {String? anonymousToken}) async {
     try {
-      final result = await _cloudBase.auth.signInWithOtp(
-        SignInWithOtpReq(
-          email: email,
-          options: SignInWithOtpReqOptions(
-            shouldCreateUser: anonymousToken != null ? true : true,
-          ),
-        ),
-      );
-      
-      if (result.error != null) {
-        return AuthResult.failure(_convertError(result.error));
+      if (_pendingVerifyOtp == null) {
+        return AuthResult.failure(
+          const AuthException(code: 'no_pending_verification', message: '没有待验证的注册请求'),
+        );
       }
-      
-      final verifyResult = await result.data!.verifyOtp!(
+
+      final verifyResult = await _pendingVerifyOtp!(
         VerifyOtpParams(token: code),
       );
-      
+
+      _pendingVerifyOtp = null;
+      _pendingEmail = null;
+
       if (verifyResult.isSuccess) {
         final user = _convertToUserInfo(verifyResult.data?.user);
         await _cacheUserInfo(user, verifyResult.data?.session?.accessToken);
@@ -115,6 +120,9 @@ class AuthService {
         return AuthResult.failure(_convertError(verifyResult.error));
       }
     } catch (e) {
+      debugPrint('[AuthService] verifyEmailCode error: $e');
+      _pendingVerifyOtp = null;
+      _pendingEmail = null;
       return AuthResult.failure(AuthException(code: 'unknown', message: e.toString()));
     }
   }
@@ -122,7 +130,7 @@ class AuthService {
   Future<AuthResult> signInAnonymously() async {
     try {
       final result = await _cloudBase.auth.signInAnonymously();
-      
+
       if (result.isSuccess) {
         _anonymousToken = result.data?.session?.accessToken;
         final user = _convertToUserInfo(result.data?.user);
@@ -132,6 +140,7 @@ class AuthService {
         return AuthResult.failure(_convertError(result.error));
       }
     } catch (e) {
+      debugPrint('[AuthService] signInAnonymously error: $e');
       return AuthResult.failure(AuthException(code: 'unknown', message: e.toString()));
     }
   }
@@ -146,11 +155,14 @@ class AuthService {
           anonymousToken: _anonymousToken,
         ),
       );
-      
+
       if (result.error != null) {
         return AuthResult.failure(_convertError(result.error));
       }
-      
+
+      _pendingEmail = email;
+      _pendingVerifyOtp = result.data?.verifyOtp;
+
       return AuthResult.success(
         user: UserInfo(
           id: '',
@@ -163,6 +175,7 @@ class AuthService {
         ),
       );
     } catch (e) {
+      debugPrint('[AuthService] upgradeAnonymousUser error: $e');
       return AuthResult.failure(AuthException(code: 'unknown', message: e.toString()));
     }
   }
@@ -172,13 +185,45 @@ class AuthService {
       final result = await _cloudBase.auth.signInWithOtp(
         SignInWithOtpReq(email: email),
       );
-      
+
       if (result.error != null) {
         return AuthResult.failure(_convertError(result.error));
       }
-      
+
+      _pendingEmail = email;
+      _pendingVerifyOtp = result.data?.verifyOtp;
+
       return AuthResult.success();
     } catch (e) {
+      debugPrint('[AuthService] resetPassword error: $e');
+      return AuthResult.failure(AuthException(code: 'unknown', message: e.toString()));
+    }
+  }
+
+  Future<AuthResult> confirmResetPassword(String code, String newPassword) async {
+    try {
+      if (_pendingVerifyOtp == null) {
+        return AuthResult.failure(
+          const AuthException(code: 'no_pending_verification', message: '没有待验证的重置请求'),
+        );
+      }
+
+      final verifyResult = await _pendingVerifyOtp!(
+        VerifyOtpParams(token: code),
+      );
+
+      _pendingVerifyOtp = null;
+      _pendingEmail = null;
+
+      if (verifyResult.isSuccess) {
+        return AuthResult.success();
+      } else {
+        return AuthResult.failure(_convertError(verifyResult.error));
+      }
+    } catch (e) {
+      debugPrint('[AuthService] confirmResetPassword error: $e');
+      _pendingVerifyOtp = null;
+      _pendingEmail = null;
       return AuthResult.failure(AuthException(code: 'unknown', message: e.toString()));
     }
   }
@@ -207,6 +252,7 @@ class AuthService {
 
       return AuthResult.success();
     } catch (e) {
+      debugPrint('[AuthService] changePassword error: $e');
       return AuthResult.failure(AuthException(code: 'unknown', message: e.toString()));
     }
   }
@@ -270,6 +316,8 @@ class AuthService {
       await _cloudBase.auth.signOut();
       await clearCache();
       _anonymousToken = null;
+      _pendingVerifyOtp = null;
+      _pendingEmail = null;
     } catch (e) {
       debugPrint('[AuthService] signOut error: $e');
       rethrow;
@@ -277,21 +325,22 @@ class AuthService {
   }
 
   Stream<AuthState> get authStateChanges {
-    if (_authStateController == null) {
-      _authStateController = StreamController<AuthState>.broadcast();
-    }
+    _authStateController ??= StreamController<AuthState>.broadcast();
     return _authStateController!.stream;
   }
 
-  Future<void> restoreSession() async {
+  Future<bool> restoreSession() async {
     try {
       final cachedUser = await getCachedUserInfo();
       if (cachedUser != null) {
         _currentUser = cachedUser;
         _authStateController?.add(AuthState.authenticated);
+        return true;
       }
+      return false;
     } catch (e) {
       debugPrint('[AuthService] restoreSession error: $e');
+      return false;
     }
   }
 
@@ -402,11 +451,18 @@ class AuthService {
     });
   }
 
+  void clearPendingVerification() {
+    _pendingVerifyOtp = null;
+    _pendingEmail = null;
+  }
+
   Future<void> dispose() async {
     await _authStateController?.close();
     _authStateController = null;
     _currentUser = null;
     _anonymousToken = null;
+    _pendingVerifyOtp = null;
+    _pendingEmail = null;
     _isInitialized = false;
   }
 }

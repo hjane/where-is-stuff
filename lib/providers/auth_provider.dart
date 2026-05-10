@@ -3,6 +3,7 @@ import '../core/auth/auth_service.dart';
 import '../core/auth/auth_state.dart';
 import '../core/auth/user_info.dart';
 import '../core/auth/auth_result.dart';
+import '../core/auth/exceptions/auth_exception.dart';
 
 class AuthProvider extends ChangeNotifier {
   static final AuthProvider _instance = AuthProvider._internal();
@@ -26,16 +27,16 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> initialize() async {
     _setLoading(true);
-    
+
     try {
       await _authService.initialize();
-      
+
       final restored = await _authService.restoreSession();
-      
+
       if (restored) {
         _currentUser = await _authService.getCurrentUser();
-        _authState = _currentUser?.isAnonymous == true 
-            ? AuthState.anonymous 
+        _authState = _currentUser?.isAnonymous == true
+            ? AuthState.anonymous
             : AuthState.authenticated;
       } else {
         final result = await _authService.signInAnonymously();
@@ -52,17 +53,17 @@ class AuthProvider extends ChangeNotifier {
     } finally {
       _setLoading(false);
     }
-    
+
     _listenToAuthChanges();
   }
 
   Future<bool> signInWithEmail(String email, String password) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       final result = await _authService.signInWithEmail(email, password);
-      
+
       if (result.isSuccess) {
         _currentUser = result.user;
         _authState = AuthState.authenticated;
@@ -83,7 +84,7 @@ class AuthProvider extends ChangeNotifier {
   Future<AuthResult> signUpWithEmail(String email, String password, String nickname) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       final result = await _authService.signUpWithEmail(email, password, nickname);
       return result;
@@ -95,13 +96,13 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> verifyEmailCode(String email, String code) async {
+  Future<bool> verifyEmailCode(String code) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
-      final result = await _authService.verifyEmailCode(code, email: email);
-      
+      final result = await _authService.verifyEmailCode(code);
+
       if (result.isSuccess) {
         _currentUser = result.user;
         _authState = AuthState.authenticated;
@@ -122,10 +123,10 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> signInAnonymously() async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       final result = await _authService.signInAnonymously();
-      
+
       if (result.isSuccess) {
         _currentUser = result.user;
         _authState = AuthState.anonymous;
@@ -146,7 +147,7 @@ class AuthProvider extends ChangeNotifier {
   Future<AuthResult> upgradeAnonymousUser(String email, String password, String nickname) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       final result = await _authService.upgradeAnonymousUser(email, password, nickname);
       return result;
@@ -161,7 +162,7 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> sendResetPasswordEmail(String email) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
       final result = await _authService.resetPassword(email);
       return result.isSuccess;
@@ -173,9 +174,29 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> confirmResetPassword(String code, String newPassword) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.confirmResetPassword(code, newPassword);
+      if (result.isSuccess) {
+        return true;
+      } else {
+        _errorMessage = result.error?.message ?? '重置失败';
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<void> signOut() async {
     _setLoading(true);
-    
+
     try {
       await _authService.signOut();
       _currentUser = null;
@@ -194,6 +215,10 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       _errorMessage = e.toString();
     }
+  }
+
+  void cancelPendingVerification() {
+    _authService.clearPendingVerification();
   }
 
   void _setLoading(bool value) {
@@ -217,6 +242,7 @@ class AuthProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _authService.dispose();
     super.dispose();
   }
 }

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>收纳助手 - 首页</title>
+<script src="https://modao.cc/agent-py/static/source/js/tailwindcss.js"></script>
+<script src="https://modao.cc/agent-py/static/source/js/iconify-icon.min.js"></script>
+<style>
+        @layer utilities {
+            .glass {
+                background: rgba(255, 255, 255, 0.7);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+            }
+            .bg-home {
+                background-image: linear-gradient(rgba(0,0,0,0.05), rgba(0,0,0,0.05)), url('/agent-py/static/source/images/placeholder.svg');
+                background-size: cover;
+                background-position: center;
+            }
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<!-- iPhone 15 Pro Container -->
+<div class="w-[375px] h-[812px] bg-home relative overflow-hidden rounded-[55px] shadow-2xl border-[8px] border-gray-900">
+<!-- Status Bar -->
+<div class="absolute top-0 w-full h-12 flex items-center justify-between px-8 z-20">
+<span class="text-sm font-semibold text-gray-800">9:41</span>
+<div class="flex items-center gap-1.5">
+<iconify-icon class="text-lg text-gray-800" icon="fluent:cellular-data-24-filled"></iconify-icon>
+<iconify-icon class="text-lg text-gray-800" icon="fluent:wifi-1-24-filled"></iconify-icon>
+<iconify-icon class="text-lg text-gray-800" icon="fluent:battery-1-24-filled"></iconify-icon>
+</div>
+</div>
+<!-- Main Content Area (Scrollable) -->
+<div class="h-full pt-16 pb-24 overflow-y-auto px-6">
+<!-- Header -->
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-2">
+<div class="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+<iconify-icon class="text-2xl" icon="fluent:box-search-24-filled"></iconify-icon>
+</div>
+<h1 class="text-xl font-bold text-gray-800">收纳助手</h1>
+</div>
+<button class="p-2 bg-white/50 backdrop-blur rounded-full text-gray-600 border border-white/20">
+<iconify-icon class="text-xl" icon="fluent:alert-24-regular"></iconify-icon>
+</button>
+</div>
+<!-- Search Bar -->
+<div class="glass rounded-2xl p-3 flex items-center gap-3 mb-10 shadow-sm">
+<iconify-icon class="text-gray-400 text-xl ml-1" icon="fluent:search-24-regular"></iconify-icon>
+<input class="bg-transparent border-none outline-none text-gray-700 placeholder-gray-400 w-full text-sm" placeholder="搜索物品..." type="text"/>
+</div>
+<!-- Central Mic Section -->
+<div class="flex flex-col items-center justify-center py-8">
+<div class="relative group">
+<!-- Animation Rings -->
+<div class="absolute inset-0 bg-orange-500/20 rounded-full animate-ping"></div>
+<button class="relative w-32 h-32 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white shadow-[0_10px_40px_-10px_rgba(249,115,22,0.5)] active:scale-95 transition-transform">
+<iconify-icon class="text-5xl" icon="fluent:mic-24-filled"></iconify-icon>
+</button>
+</div>
+<p class="mt-6 text-gray-700 font-medium">点击说话，查找物品</p>
+<p class="text-xs text-gray-500 mt-1">您可以说“我的充电线在哪里？”</p>
+</div>
+<!-- Action Grid -->
+<div class="grid grid-cols-2 gap-4 mt-8">
+<button class="glass rounded-3xl p-5 flex flex-col items-center gap-3 active:scale-95 transition-transform">
+<div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-sm border border-gray-50">
+<iconify-icon class="text-2xl" icon="fluent:camera-24-regular"></iconify-icon>
+</div>
+<span class="text-sm font-semibold text-gray-700">拍照录入</span>
+</button>
+<button class="glass rounded-3xl p-5 flex flex-col items-center gap-3 active:scale-95 transition-transform">
+<div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-orange-500 shadow-sm border border-gray-50">
+<iconify-icon class="text-2xl" icon="fluent:mic-sparkle-24-regular"></iconify-icon>
+</div>
+<span class="text-sm font-semibold text-gray-700">语音录入</span>
+</button>
+</div>
+<!-- Summary Card -->
+<div class="glass rounded-3xl p-4 mt-6 flex items-center gap-4 border border-white/40 shadow-sm cursor-pointer hover:bg-white/80 transition-colors" onclick="window.location.href='rooms.html'">
+<div class="w-16 h-16 rounded-2xl overflow-hidden shadow-inner">
+<img alt="Living room thumbnail" class="w-full h-full object-cover" src="https://modao.cc/agent-py/media/generated_images/2026-05-10/3b834b302bf249fe8ea467c85666a912.jpg#desc=Living%20room%20thumbnail"/>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<h3 class="font-bold text-gray-800">我的收纳 <span class="text-orange-500">5</span> 房间</h3>
+<iconify-icon class="text-gray-400" icon="fluent:chevron-right-24-regular"></iconify-icon>
+</div>
+<p class="text-xs text-gray-500 mt-1">共管理 12个家具 · 156件物品</p>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation -->
+<div class="absolute bottom-0 w-full glass h-20 px-8 flex items-center justify-between z-20 pb-4">
+<a class="flex flex-col items-center gap-1 text-orange-600" href="index.html">
+<iconify-icon class="text-2xl" icon="fluent:home-24-filled"></iconify-icon>
+<span class="text-[10px] font-bold">首页</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-400 hover:text-orange-400" href="rooms.html">
+<iconify-icon class="text-2xl" icon="fluent:box-24-regular"></iconify-icon>
+<span class="text-[10px] font-medium">房间</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-400 hover:text-orange-400" href="profile.html">
+<iconify-icon class="text-2xl" icon="fluent:person-24-regular"></iconify-icon>
+<span class="text-[10px] font-medium">我的</span>
+</a>
+</div>
+<!-- Notch Area -->
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-black rounded-b-2xl z-30"></div>
+</div>
+</body>
+</html>
